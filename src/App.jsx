@@ -116,7 +116,7 @@ export default function App() {
       {screen === 'home' && (
         <div className="screen">
           <div className="header">
-            <h1>🌍 ZeroPlastic Cleanup</h1>
+            <h1>ZeroPlastic Trail 2026</h1>
             <h2>Check-In System</h2>
           </div>
 
