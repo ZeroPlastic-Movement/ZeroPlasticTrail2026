@@ -315,3 +315,32 @@ input:disabled {
     font-size: 24px;
   }
 }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  line-height: 1.35;
+}
+
+.field-label em {
+  font-weight: 400;
+  font-style: normal;
+  color: #999;
+}
+
+.info {
+  background: #e8f4fd;
+  color: #0b5a87;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  border-left: 4px solid #007eb5;
+  font-size: 14px;
+}

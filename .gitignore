@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output — Vercel builds this from source; committing it is how the
+# API token ended up inside a published JavaScript bundle.
+dist/
+
+# Secrets. Never commit these; set them in the Vercel dashboard instead.
+.env
+.env.*
+!.env.example
+
+# Logs & editor cruft
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+
+# Vercel
+.vercel

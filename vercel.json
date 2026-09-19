@@ -1,8 +1,6 @@
 {
-  "name": "zp-cleanup-checkin",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "env": {
-"VITE_MONDAY_API_TOKEN": "eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjY2Nzg2NDI3NCwiYWFpIjoxMSwidWlkIjo3MDAxMjcyNCwiaWQiOiIyMDI2LTA2LTA3VDE0OjI1OjA0LjAwMFoiLCJwZXIiOiJtZTp3cml0ZSIsImFjdGlkIjoyNzExODMzNCwicmduIjoiYXBzZTIifQ.pvOcUzYFkeBfB2f_TfVfJJQ49q7MWDTbO2scrImspHA"  }
+  "framework": "vite"
 }

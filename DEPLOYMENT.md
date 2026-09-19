@@ -1,91 +1,77 @@
 # 🚀 Deployment Guide
 
-## Step 1: Prepare Your GitHub Repository
+## One-time setup
 
-Your repo is already created: https://github.com/ZeroPlastic-Movement/ZeroPlasticTrail2026
+### 1. Set the API token in Vercel
 
-Create a new folder in it called `cleanup-checkin/` and copy all files from this project there, OR replace the entire repo content with this project.
+In the Vercel dashboard: **Project → Settings → Environment Variables**.
 
-## Step 2: Push to GitHub
+| Name | Value |
+| --- | --- |
+| `MONDAY_API_TOKEN` | your Monday.com personal token |
 
-```bash
-cd /path/to/ZeroPlasticTrail2026
-git add .
-git commit -m "Initial commit: ZeroPlastic Cleanup Check-In System"
-git push origin main
-```
+Apply it to **Production**, **Preview** and **Development**.
 
-## Step 3: Set Up Vercel
+Do **not** name it `VITE_MONDAY_API_TOKEN`. Vite inlines every `VITE_*` variable
+into the public JavaScript bundle, which publishes the token to every visitor.
+The variable has no prefix precisely so this cannot happen.
 
-### Option A: Using Vercel Dashboard (Recommended)
+The token itself never goes in this repository — not in `vercel.json`, not in
+any source file.
 
-1. Go to: https://vercel.com
-2. Click "New Project"
-3. Select "Import Git Repository"
-4. Choose your GitHub repo: `ZeroPlastic-Movement/ZeroPlasticTrail2026`
-5. Click "Import"
-6. In "Environment Variables", add:
-   - **Name:** `VITE_MONDAY_API_TOKEN`
-   - **Value:** Paste your token (from the image you showed)
-7. Click "Deploy"
+### 2. Connect the repo
 
-### Option B: Using Vercel CLI
+Vercel → **New Project** → import `ZeroPlastic-Movement/ZeroPlasticTrail2026`.
+Framework preset: **Vite**. Build settings come from `vercel.json`.
 
-```bash
-npm install -g vercel
+After that, every push to `main` deploys to production automatically, and every
+branch gets its own preview URL.
 
-vercel login
+## Pre-event checklist
 
-vercel --env VITE_MONDAY_API_TOKEN=your_token_here
-```
+Run through this on the real deployed URL, not locally:
 
-## Step 4: Get Your Live URL
+1. **Known NIC** — enter a NIC that is already on the board. You should see that
+   person's name, then "Mark Me As Participated" should turn the board's
+   *Participated* column to **Yes**.
+2. **Same NIC again** — should say you are already checked in, with no second
+   write to the board.
+3. **Unknown NIC** — should open the registration form. Submit it, then confirm a
+   new row appears on the board with NIC, WhatsApp number, university, name with
+   initials, medical answer, and *Participated = Yes*.
+4. **Bad input** — type `123` and confirm you get a readable error rather than a
+   silent failure.
+5. **QR code** — click *Download QR Code* and confirm a PNG downloads.
 
-After deployment, Vercel will give you a URL like:
-```
-https://zp-cleanup-checkin.vercel.app
-```
+Delete any test rows from the board afterwards.
 
-## Step 5: Download QR Code
+## Event day
 
-1. Visit your live URL
-2. Click "📥 Download QR Code"
-3. Print it or display on a tablet at your event
+1. Print the QR code, or display it on a tablet at the gate.
+2. Participants scan it and enter their NIC.
+3. Watch the Monday board update live.
 
-## Step 6: Event Day
-
-1. Print the QR code or display on screen
-2. Participants scan with their phones
-3. They enter their NIC or register
-4. Check your Monday.com board in real-time for updates!
-
----
-
-## Testing
-
-Before the event, test with:
-- NIC from your board: Should show welcome message
-- Random NIC: Should show registration form
-- After checking in: Verify "Participated" column updates to "Yes"
+Keep a volunteer at the desk with the board open — if someone's NIC will not
+match (a typo in the original registration, for example), they can fix it on the
+board directly.
 
 ## Troubleshooting
 
-### "Error searching participant"
-- Check your Monday.com API token is valid
-- Verify Board ID is correct: 5031418117
+**"Server is not configured"** — `MONDAY_API_TOKEN` is missing in Vercel, or was
+added after the last deploy. Environment variables only apply to builds made
+after they are set, so redeploy.
 
-### "Can't connect to Monday.com"
-- Check internet connection
-- Verify token hasn't expired
-- Regenerate token if needed at: https://monday.com/users/me/api
+**"Monday.com rejected the request"** — check the function logs in Vercel
+(**Deployments → the deployment → Functions → `api/checkin`**). The real Monday
+error is logged there; participants only ever see the generic message.
 
-### QR Code Not Working
-- Make sure QR code is clear and not pixelated
-- Try scanning with different phone cameras
-- Check URL in QR code is correct
+**Everyone shows as "not found"** — check `MONDAY_BOARD_ID` points at the right
+board and that the NIC column is still `numeric_mm7brhp6`.
 
----
+**Check-ins stop working mid-event** — first check the Vercel function logs. If
+Monday changed their API, set `MONDAY_API_VERSION` to a known-good version and
+redeploy.
 
 ## Support
 
-For questions, contact: nish@zeroplasticmovement.org
+nish@zeroplasticmovement.org
