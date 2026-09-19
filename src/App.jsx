@@ -6,30 +6,10 @@ import './App.css';
 // server — see api/checkin.js. Never call api.monday.com from the browser.
 const CHECKIN_API = '/api/checkin';
 
-const UNIVERSITIES = [
-  'Open University of Sri Lanka',
-  'University of Colombo',
-  'University of Peradeniya',
-  'University of Kelaniya',
-  'University of Ruhuna',
-  'University of Wayamba',
-  'University of Vavuniya',
-  'Sabaragamuwa University of Sri Lanka',
-  'Ocean University of Sri Lanka',
-  'CINEC',
-  'NIBM',
-  'NISD',
-  'NDT',
-  'SIBA Campus',
-  'Other',
-];
-
 const EMPTY_FORM = {
   name: '',
   certificateName: '',
   mobile: '',
-  university: '',
-  medical: '',
   nic: '',
 };
 
@@ -55,6 +35,11 @@ export default function App() {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState(EMPTY_FORM);
   const qrRef = useRef(null);
+  const registrationReady =
+    formData.name.trim() &&
+    formData.certificateName.trim() &&
+    formData.mobile.trim() &&
+    formData.nic.trim();
 
   const resetToHome = () => {
     setScreen('home');
@@ -220,7 +205,7 @@ export default function App() {
             </>
           ) : (
             <button onClick={markParticipated} disabled={loading} className="btn btn-success">
-              {loading ? 'Marking...' : '✓ Mark Me As Participated'}
+              {loading ? 'Checking In...' : 'Check In'}
             </button>
           )}
 
@@ -239,62 +224,44 @@ export default function App() {
 
           <div className="form">
             <label className="field">
-              <span className="field-label">Full Name</span>
-              <input type="text" value={formData.name} onChange={updateField('name')} />
+              <span className="field-label">Name</span>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={updateField('name')}
+                autoComplete="name"
+              />
             </label>
 
             <label className="field">
-              <span className="field-label">Name with Initials <em>(as it should appear on your certificate)</em></span>
+              <span className="field-label">Name for the Certificate</span>
               <input
                 type="text"
-                placeholder="e.g. A. B. C. Perera"
+                placeholder="Enter exactly as it should appear on the certificate"
                 value={formData.certificateName}
                 onChange={updateField('certificateName')}
               />
             </label>
 
             <label className="field">
-              <span className="field-label">Mobile Number (WhatsApp)</span>
+              <span className="field-label">Mobile Number</span>
               <input
                 type="tel"
                 inputMode="numeric"
                 value={formData.mobile}
                 onChange={updateField('mobile')}
+                autoComplete="tel"
               />
             </label>
 
             <label className="field">
-              <span className="field-label">University / Institution</span>
-              <select value={formData.university} onChange={updateField('university')}>
-                <option value="">Select University</option>
-                {UNIVERSITIES.map((university) => (
-                  <option key={university} value={university}>
-                    {university}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field">
-              <span className="field-label">
-                Any medical conditions or medication we should know about?
-              </span>
-              <input
-                type="text"
-                placeholder="Type 'No' if none"
-                value={formData.medical}
-                onChange={updateField('medical')}
-              />
-            </label>
-
-            <label className="field">
-              <span className="field-label">NIC Number</span>
+              <span className="field-label">NIC</span>
               <input type="text" value={formData.nic} disabled />
             </label>
           </div>
 
-          <button onClick={registerParticipant} disabled={loading} className="btn btn-success">
-            {loading ? 'Registering...' : '✓ Check In'}
+          <button onClick={registerParticipant} disabled={loading || !registrationReady} className="btn btn-success">
+            {loading ? 'Registering...' : 'Register & Check In'}
           </button>
 
           <button onClick={resetToHome} className="btn btn-secondary">
