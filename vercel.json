@@ -1,0 +1,9 @@
+{
+  "name": "zp-cleanup-checkin",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "env": {
+    "VITE_MONDAY_API_TOKEN": "@vite-monday-token"
+  }
+}
