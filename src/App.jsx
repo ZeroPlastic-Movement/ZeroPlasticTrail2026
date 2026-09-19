@@ -1,5 +1,4 @@
-import React, { useRef, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import React, { useState } from 'react';
 import './App.css';
 
 // All Monday.com access goes through this endpoint. The API token stays on the
@@ -34,7 +33,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const qrRef = useRef(null);
   const registrationReady =
     formData.name.trim() &&
     formData.certificateName.trim() &&
@@ -110,32 +108,6 @@ export default function App() {
     }
   };
 
-  // qrcode.react v4 forwards this ref to the <svg> element itself, so serialise
-  // it directly — there is no inner <svg> to query for.
-  const downloadQR = () => {
-    const svg = qrRef.current;
-    if (!svg) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width || 200;
-      canvas.height = img.height || 200;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-
-      const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = 'cleanup-checkin-qr.png';
-      link.click();
-    };
-    img.onerror = () => setError('Could not generate the QR image. Try a different browser.');
-    img.src = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgData)));
-  };
-
   const updateField = (field) => (event) =>
     setFormData((current) => ({ ...current, [field]: event.target.value }));
 
@@ -148,25 +120,8 @@ export default function App() {
             <h2>Check-In System</h2>
           </div>
 
-          <div className="qr-section">
-            <h3>Scan QR Code or Enter NIC</h3>
-            <div className="qr-code">
-              <QRCodeSVG
-                ref={qrRef}
-                value={window.location.origin + window.location.pathname}
-                size={200}
-                level="H"
-                marginSize={4}
-              />
-            </div>
-            <button onClick={downloadQR} className="btn btn-secondary">
-              📥 Download QR Code
-            </button>
-          </div>
-
-          <div className="divider">OR</div>
-
           <div className="input-section">
+            <h3>Enter Your NIC Number</h3>
             <input
               type="text"
               inputMode="numeric"
