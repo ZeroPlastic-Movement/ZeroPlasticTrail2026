@@ -100,7 +100,7 @@ export default function App() {
     setError('');
     try {
       await callCheckinApi({ action: 'participate', itemId: participant.itemId });
-      finishWith('Your participation has been recorded.');
+      finishWith('Checked In');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -115,8 +115,8 @@ export default function App() {
       const result = await callCheckinApi({ action: 'register', ...formData });
       finishWith(
         result.duplicate
-          ? 'You were already on the list — you are checked in.'
-          : 'You are registered and checked in.'
+          ? 'You were already on the list — Checked In.'
+          : 'Registered and Checked In'
       );
     } catch (err) {
       setError(err.message);
@@ -310,7 +310,7 @@ export default function App() {
           <div className="success-box large">
             <h1>✅</h1>
             <h2>Thank You!</h2>
-            <p>{participant?.successMessage || 'Your participation has been recorded.'}</p>
+            <p>{participant?.successMessage || 'Checked In'}</p>
             <p className="subtitle">Redirecting...</p>
           </div>
         </div>
