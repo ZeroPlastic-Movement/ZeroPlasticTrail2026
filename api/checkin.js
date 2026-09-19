@@ -17,6 +17,66 @@ const COL = {
   certificateName: 'dropdown_mm7bzxw6',
 };
 
+// ---- Rate limiting -------------------------------------------------------
+// Monday rejects a rate-limited request outright, so nothing ran on their side
+// and the identical call can be sent again. That is what makes retrying
+// create_item safe here: a rejected write never happened, so a retry cannot
+// produce a second participant. Only the conditions below are ever retried —
+// never a 400/401/403, an invalid query, or a bad board/column id.
+const MAX_ATTEMPTS = 3;
+
+// Each wait is capped. Monday can advise a delay of half a minute, but a
+// serverless function that sleeps that long is killed by the platform timeout,
+// which would turn a busy moment into a hard failure at the gate. Better to
+// give up quickly and let the volunteer tap Search again.
+const MAX_RETRY_WAIT_MS = 2000;
+
+const RATE_LIMIT_MARKERS = [
+  'maxconcurrencyexceeded',
+  'concurrency_limit_exceeded',
+  'rate limit exceeded',
+  'rate_limit_exceeded',
+  'ip_rate_limit_exceeded',
+  'complexity_budget_exhausted',
+  'complexityexception',
+  'too many requests',
+];
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function isRateLimited(response, body) {
+  if (response.status === 429) return true;
+
+  const parts = [body?.error_code, body?.error_message];
+  for (const error of body?.errors || []) {
+    parts.push(error?.message, error?.extensions?.code, error?.error_code);
+  }
+  const text = parts.filter(Boolean).join(' ').toLowerCase();
+  if (!text) return false;
+
+  // A daily quota will not clear inside the retry window, so failing fast beats
+  // making someone wait for a retry that cannot succeed.
+  if (text.includes('daily_limit_exceeded')) return false;
+
+  return RATE_LIMIT_MARKERS.some((marker) => text.includes(marker));
+}
+
+/** Monday's own advice first, then a 1s / 2s backoff. The jitter stops a queue
+ *  of simultaneous check-ins from retrying on the same millisecond. */
+function retryWaitMs(response, body, attempt) {
+  const retryAfter = Number(response.headers?.get?.('retry-after'));
+  const retryIn = Number(
+    body?.retry_in_seconds ?? body?.errors?.[0]?.extensions?.retry_in_seconds
+  );
+
+  let wait;
+  if (Number.isFinite(retryAfter) && retryAfter > 0) wait = retryAfter * 1000;
+  else if (Number.isFinite(retryIn) && retryIn > 0) wait = retryIn * 1000;
+  else wait = 1000 * 2 ** (attempt - 1);
+
+  return Math.min(wait, MAX_RETRY_WAIT_MS) + Math.floor(Math.random() * 250);
+}
+
 async function monday(query, variables) {
   const token = process.env.MONDAY_API_TOKEN;
   if (!token) {
@@ -33,23 +93,36 @@ async function monday(query, variables) {
     headers['API-Version'] = process.env.MONDAY_API_VERSION;
   }
 
-  const response = await fetch(MONDAY_API_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ query, variables }),
-  });
+  for (let attempt = 1; ; attempt++) {
+    const response = await fetch(MONDAY_API_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ query, variables }),
+    });
 
-  const body = await response.json().catch(() => null);
+    const body = await response.json().catch(() => null);
 
-  if (!response.ok || !body) {
-    throw new HttpError(502, `Monday.com returned ${response.status}.`);
+    if (isRateLimited(response, body) && attempt < MAX_ATTEMPTS) {
+      const wait = retryWaitMs(response, body, attempt);
+      // Deliberately logs no variables: they carry NIC and mobile numbers.
+      console.warn(
+        `Monday rate limited request; retrying in ${Math.round(wait / 1000)}s ` +
+          `(attempt ${attempt + 1}/${MAX_ATTEMPTS})`
+      );
+      await sleep(wait);
+      continue;
+    }
+
+    if (!response.ok || !body) {
+      throw new HttpError(502, `Monday.com returned ${response.status}.`);
+    }
+    if (body.errors?.length) {
+      // Surface the reason in the server log, never to the participant.
+      console.error('Monday GraphQL error:', JSON.stringify(body.errors));
+      throw new HttpError(502, body.errors[0]?.message || 'Monday.com rejected the request.');
+    }
+    return body.data;
   }
-  if (body.errors?.length) {
-    // Surface the reason in the server log, never to the participant.
-    console.error('Monday GraphQL error:', JSON.stringify(body.errors));
-    throw new HttpError(502, body.errors[0]?.message || 'Monday.com rejected the request.');
-  }
-  return body.data;
 }
 
 class HttpError extends Error {
