@@ -13,32 +13,9 @@ const BOARD_ID = process.env.MONDAY_BOARD_ID || '5031418117';
 const COL = {
   nic: 'numeric_mm7brhp6',
   mobile: 'numeric_mm7bz03e',
-  university: 'color_mm7bmtcx',
   participated: 'color_mm7bt98r',
   certificateName: 'dropdown_mm7bzxw6',
-  medical: 'color_mm7b1hjs',
 };
-
-// Status labels that already exist on the University / Institution column.
-// Registration only ever writes one of these, so a crafted request cannot
-// invent new labels on the board.
-const UNIVERSITIES = [
-  'Open University of Sri Lanka',
-  'University of Colombo',
-  'University of Peradeniya',
-  'University of Kelaniya',
-  'University of Ruhuna',
-  'University of Wayamba',
-  'University of Vavuniya',
-  'Sabaragamuwa University of Sri Lanka',
-  'Ocean University of Sri Lanka',
-  'CINEC',
-  'NIBM',
-  'NISD',
-  'NDT',
-  'SIBA Campus',
-  'Other',
-];
 
 async function monday(query, variables) {
   const token = process.env.MONDAY_API_TOKEN;
@@ -165,17 +142,10 @@ async function createItem(name, columnValues) {
 }
 
 async function register(payload) {
-  const name = requireText(payload.name, 'Full name', 100);
-  const nic = normaliseNic(payload.nic);
+  const name = requireText(payload.name, 'Name', 100);
+  const certificateName = requireText(payload.certificateName, 'Name for the certificate', 100);
   const mobile = normaliseMobile(payload.mobile);
-
-  const university = String(payload.university ?? '').trim();
-  if (!UNIVERSITIES.includes(university)) {
-    throw new HttpError(400, 'Select your university or institution.');
-  }
-
-  const certificateName = String(payload.certificateName ?? '').trim().slice(0, 100);
-  const medical = String(payload.medical ?? '').trim().slice(0, 255) || 'No';
+  const nic = normaliseNic(payload.nic);
 
   // Someone may have registered between the search and this submit.
   const existing = await searchByNic(nic);
@@ -184,24 +154,23 @@ async function register(payload) {
     return { ok: true, duplicate: true, name: existing.name };
   }
 
-  // Core fields must land. The two optional ones write into a dropdown and a
-  // status column whose labels are per-person free text, so a label-creation
-  // failure there must never cost us the check-in itself.
   const core = {
     [COL.nic]: nic,
     [COL.mobile]: mobile,
-    [COL.university]: { label: university },
     [COL.participated]: { label: 'Yes' },
   };
-  const full = { ...core };
-  if (certificateName) full[COL.certificateName] = { labels: [certificateName] };
-  if (medical) full[COL.medical] = { label: medical };
 
+  // The existing certificate-name column is a dropdown. Try to save it while
+  // creating the participant. If Monday rejects a new dropdown label, never
+  // block the gate check-in: create the participant with the core fields.
   try {
-    await createItem(name, full);
+    await createItem(name, {
+      ...core,
+      [COL.certificateName]: { labels: [certificateName] },
+    });
     return { ok: true };
   } catch (error) {
-    console.error('Full registration failed, retrying with core fields only:', error.message);
+    console.error('Registration with certificate name failed, retrying core fields:', error.message);
     await createItem(name, core);
     return { ok: true, partial: true };
   }
